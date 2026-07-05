@@ -36,14 +36,14 @@ bool login_llu() {
         String response = http.getString(); JsonDocument resDoc; deserializeJson(resDoc, response);
         jwt_token = resDoc["data"]["authTicket"]["token"].as<String>();
         account_id_hash = sha256(resDoc["data"]["user"]["id"].as<String>());
-        Serial.println("[LLU] Autenticazione riuscita su Libreview!"); http.end(); return true;
+        Serial.println("[LLU] Auth success on Libreview!"); http.end(); return true;
     }
-    Serial.printf("[LLU] Errore Login: %d\n", httpResponseCode); jwt_token = ""; http.end(); return false;
+    Serial.printf("[LLU] Login Error: %d\n", httpResponseCode); jwt_token = ""; http.end(); return false;
 }
 
 void fetch_glucose() {
     if (WiFi.status() != WL_CONNECTED) return;
-    if (jwt_token == "" && !login_llu()) { glucose_value = "Errore Auth"; update_display(); return; }
+    if (jwt_token == "" && !login_llu()) { glucose_value = "AUTH_ERR"; update_display(); return; }
     WiFiClientSecure client; client.setInsecure(); HTTPClient http;
     http.begin(client, get_api_url() + "/llu/connections");
     http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
@@ -52,16 +52,15 @@ void fetch_glucose() {
     http.addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; LLU App)"); http.addHeader("Accept", "application/json, text/plain, */*");
     int httpResponseCode = http.GET();
     
-    // MODIFICATO: Se il token scade o il server dà errore, svuota la cache per rigenerarla al giro dopo
     if (httpResponseCode == 401 || httpResponseCode == 403 || httpResponseCode < 0) { 
-        Serial.println("[LLU] Token scaduto o errore. Reset session cache...");
+        Serial.println("[LLU] Expired Token. Reset session cache...");
         jwt_token = ""; http.end(); return;
     }
     if (httpResponseCode == 200) {
         String response = http.getString();
-        if (response.indexOf("<html") != -1 || response.indexOf("<!DOCTYPE html>") != -1) { glucose_value = "Blocco HTML"; update_display(); http.end(); return; }
+        if (response.indexOf("<html") != -1 || response.indexOf("<!DOCTYPE html>") != -1) { glucose_value = "HTML_BLK"; update_display(); http.end(); return; }
         JsonDocument resDoc; DeserializationError error = deserializeJson(resDoc, response);
-        if (error) { glucose_value = "Err JSON"; update_display(); http.end(); return; }
+        if (error) { glucose_value = "JSON_ERR"; update_display(); http.end(); return; }
         JsonObject connection; bool dataFound = false;
         if (resDoc["data"].is<JsonArray>() && resDoc["data"].size() > 0) { connection = resDoc["data"][0].as<JsonObject>(); dataFound = true; } 
         else if (resDoc["data"].is<JsonObject>()) { connection = resDoc["data"].as<JsonObject>(); dataFound = true; }
@@ -69,10 +68,10 @@ void fetch_glucose() {
             if (connection.containsKey("glucoseMeasurement")) {
                 glucose_value = connection["glucoseMeasurement"]["Value"].as<String>();
                 last_reading_time = connection["glucoseMeasurement"]["Timestamp"].as<String>();
-                Serial.println("[LLU] Successo! Glicemia caricata: " + glucose_value);
+                Serial.println("[LLU] Success! Glucose loaded: " + glucose_value);
                 update_display();
-            } else { glucose_value = "No Meas"; update_display(); }
-        } else { glucose_value = "No Data"; update_display(); }
-    } else { Serial.printf("[LLU] Errore Connections: %d\n", httpResponseCode); update_display(); }
+            } else { glucose_value = "NO_MEAS"; update_display(); }
+        } else { glucose_value = "NO_DATA"; update_display(); }
+    } else { Serial.printf("[LLU] Connections Error: %d\n", httpResponseCode); update_display(); }
     http.end();
 }
