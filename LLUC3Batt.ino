@@ -76,6 +76,6 @@ void loop() {
         last_second_millis = millis(); tft.setTextSize(3); tft.setTextColor(0x07E0);
         tft.fillRect(88, 212, 150, 24, 0x0000); tft.setCursor(88, 212); tft.print(get_time(true)); 
     }
-    if (WiFi.status() == WL_CONNECTED && (millis() - last_fetch > 60000)) { fetch_glucose(); last_fetch = millis(); }
+    if (WiFi.status() == WL_CONNECTED && (millis() - last_fetch > 300000)) { fetch_glucose(); last_fetch = millis(); }
     delay(10);
 }
