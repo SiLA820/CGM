@@ -24,7 +24,7 @@ int glucose_hist[MAX_R]={0}, r_count=0, min_g=999, max_g=0;
 void fetch_glucose();
 String get_time(bool include_seconds) { struct tm ti; if(!getLocalTime(&ti)) return include_seconds ? "--:--:--" : "--:--"; char b[12]; strftime(b, sizeof(b), include_seconds ? "%H:%M:%S" : "%H:%M", &ti); return String(b); }
 
-void init_display_hard() { SPI.begin(4, -1, 6, 7); tft.init(240, 320, SPI_MODE3); tft.setRotation(1); tft.invertDisplay(true); tft.fillScreen(0x0000); }
+void init_display_hard() { SPI.begin(4, -1, 6, 7); tft.init(240, 320, SPI_MODE3); tft.setRotation(3); tft.invertDisplay(true); tft.fillScreen(0x0000); }
 
 void try_multi_wifi() {
     String ssids[3] = {wifi_ssid, wifi_ssid2, wifi_ssid3};
